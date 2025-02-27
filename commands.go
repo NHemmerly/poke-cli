@@ -36,6 +36,11 @@ func init() {
 			description: "Displays the names of 20 locations, each subsequent call displays the next 20",
 			callback:    commandMap,
 		},
+		"mapb": {
+			name:        "mapb",
+			description: "Displays the previous 20 locations of the map command",
+			callback:    commandMapb,
+		},
 	}
 }
 
@@ -65,25 +70,72 @@ func commandMap(cfg *config) error {
 	if cfg.next == "" {
 		cfg.next = "https://pokeapi.co/api/v2/location-area"
 	}
-	req, err := http.NewRequest("GET", cfg.next, nil)
-	if err != nil {
-		return fmt.Errorf("error creating request: %w", err)
-	}
 
-	client := http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("error gathering response: %w", err)
-	}
-	defer res.Body.Close()
+	cacheData, found := cfg.cache.Get(cfg.next)
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("error reading body: %w", err)
+	var body []byte
+
+	if found {
+		fmt.Println("Using cached data...")
+		body = cacheData
+	} else {
+		res, err := http.Get(cfg.next)
+		if err != nil {
+			return fmt.Errorf("error creating request: %w", err)
+		}
+		defer res.Body.Close()
+
+		body, err = io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("error reading body: %w", err)
+		}
+
+		cfg.cache.Add(cfg.next, body)
 	}
 
 	var response LocationAreaNoID
-	if err = json.Unmarshal(body, &response); err != nil {
+	if err := json.Unmarshal(body, &response); err != nil {
+		return fmt.Errorf("could not unmarshal: %w", err)
+	}
+
+	for _, name := range response.Results {
+		fmt.Println(name.Name)
+	}
+
+	cfg.next = response.Next
+	cfg.previous = response.Previous
+
+	return nil
+}
+
+func commandMapb(cfg *config) error {
+	if cfg.previous == "" {
+		fmt.Println("you're on the first page")
+		return nil
+	}
+
+	var body []byte
+	cacheData, found := cfg.cache.Get(cfg.previous)
+	if found {
+		fmt.Println("Using cached data...")
+		body = cacheData
+	} else {
+		res, err := http.Get(cfg.previous)
+		if err != nil {
+			return fmt.Errorf("error creating request: %w", err)
+		}
+
+		defer res.Body.Close()
+
+		body, err = io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("error reading body: %w", err)
+		}
+		cfg.cache.Add(cfg.previous, body)
+	}
+
+	var response LocationAreaNoID
+	if err := json.Unmarshal(body, &response); err != nil {
 		return fmt.Errorf("could not unmarshal: %w", err)
 	}
 

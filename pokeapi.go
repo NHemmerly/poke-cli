@@ -1,8 +1,13 @@
 package main
 
+import (
+	"github.com/NHemmerly/poke-cli/internal/pokecache"
+)
+
 type config struct {
 	next     string
 	previous string
+	cache    *pokecache.Cache
 }
 
 type (
