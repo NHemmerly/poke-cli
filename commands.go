@@ -48,6 +48,16 @@ func init() {
 			description: "Catches the selects pokemon: catch [pokemon name]",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "Prints information about a pokemon if it is in the pokedex: inspect [pokemon name]",
+			callback:    commandInspect,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Prints all pokemon caught by the current user",
+			callback:    commandPokedex,
+		},
 	}
 }
 
@@ -116,11 +126,31 @@ func commandExplore(cfg *config, location string) error {
 	return nil
 }
 
-func commandCatch(cfg *config, pokeName string) error {
-	pokemonUrl := "https://pokeapi.co/api/v2/pokemon/" + pokeName
-	fmt.Printf("Throwing a Pokeball at %s...\n", pokeName)
+func commandCatch(cfg *config, name string) error {
+	pokemonUrl := "https://pokeapi.co/api/v2/pokemon/" + name
+	fmt.Printf("Throwing a Pokeball at %s...\n", name)
 	if err := PrintPokeCatch(pokemonUrl, cfg); err != nil {
 		return fmt.Errorf("could not catch pokemon: %w", err)
+	}
+	return nil
+}
+
+func commandInspect(cfg *config, name string) error {
+	val, ok := cfg.pokedex.Get(name)
+	if !ok {
+		fmt.Printf("You have not caught that pokemon\n")
+		return nil
+	}
+	PrintPokemon(val)
+
+	return nil
+}
+
+func commandPokedex(cfg *config, nul string) error {
+	sortedPokemon := slices.Sorted(maps.Keys(cfg.pokedex.Pokemon))
+	fmt.Printf("Your Pokedex:\n")
+	for _, pokemon := range sortedPokemon {
+		fmt.Printf("\t- %s\n", pokemon)
 	}
 	return nil
 }
