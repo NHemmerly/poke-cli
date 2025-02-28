@@ -12,7 +12,7 @@ import (
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 	scanner := bufio.NewScanner(reader)
-	cfg := &config{cache: pokecache.NewCache(5 * time.Second)}
+	cfg := &config{cache: pokecache.NewCache(20 * time.Second)}
 	for {
 		fmt.Print("Pokedex > ")
 		scanner.Scan()
