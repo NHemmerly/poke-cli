@@ -11,7 +11,7 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(cfg *config) error
+	callback    func(cfg *config, arg string) error
 }
 
 var Commands map[string]cliCommand
@@ -38,16 +38,26 @@ func init() {
 			description: "Displays the previous 20 locations of the map command",
 			callback:    commandMapb,
 		},
+		"explore": {
+			name:        "explore",
+			description: "Displays the names of pokemon at a map location: explore [location]",
+			callback:    commandExplore,
+		},
+		"catch": {
+			name:        "catch",
+			description: "Catches the selects pokemon: catch [pokemon name]",
+			callback:    commandCatch,
+		},
 	}
 }
 
-func commandExit(cfg *config) error {
+func commandExit(cfg *config, arg string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return errors.New("Cannot close program")
 }
 
-func commandHelp(cfg *config) error {
+func commandHelp(cfg *config, arg string) error {
 	descriptions := func() string {
 		var out string
 		sortedKeys := slices.Sorted(maps.Keys(Commands))
@@ -63,7 +73,7 @@ Usage:
 	return nil
 }
 
-func commandMap(cfg *config) error {
+func commandMap(cfg *config, arg string) error {
 	if cfg.next == "" {
 		cfg.next = "https://pokeapi.co/api/v2/location-area"
 	}
@@ -79,7 +89,7 @@ func commandMap(cfg *config) error {
 	return nil
 }
 
-func commandMapb(cfg *config) error {
+func commandMapb(cfg *config, arg string) error {
 	if cfg.previous == "" {
 		fmt.Println("you're on the first page")
 		return nil
@@ -93,5 +103,24 @@ func commandMapb(cfg *config) error {
 	cfg.next = response.Next
 	cfg.previous = response.Previous
 
+	return nil
+}
+
+func commandExplore(cfg *config, location string) error {
+	locationUrl := "https://pokeapi.co/api/v2/location-area/" + location
+	fmt.Printf("Exploring %s...\n", location)
+	err := PrintLocationPokemon(locationUrl, cfg)
+	if err != nil {
+		return fmt.Errorf("could not print location info: %w", err)
+	}
+	return nil
+}
+
+func commandCatch(cfg *config, pokeName string) error {
+	pokemonUrl := "https://pokeapi.co/api/v2/pokemon/" + pokeName
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokeName)
+	if err := PrintPokeCatch(pokemonUrl, cfg); err != nil {
+		return fmt.Errorf("could not catch pokemon: %w", err)
+	}
 	return nil
 }
