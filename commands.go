@@ -1,12 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"maps"
-	"net/http"
 	"os"
 	"slices"
 )
@@ -71,35 +68,9 @@ func commandMap(cfg *config) error {
 		cfg.next = "https://pokeapi.co/api/v2/location-area"
 	}
 
-	cacheData, found := cfg.cache.Get(cfg.next)
-
-	var body []byte
-
-	if found {
-		fmt.Println("Using cached data...")
-		body = cacheData
-	} else {
-		res, err := http.Get(cfg.next)
-		if err != nil {
-			return fmt.Errorf("error creating request: %w", err)
-		}
-		defer res.Body.Close()
-
-		body, err = io.ReadAll(res.Body)
-		if err != nil {
-			return fmt.Errorf("error reading body: %w", err)
-		}
-
-		cfg.cache.Add(cfg.next, body)
-	}
-
-	var response LocationAreaNoID
-	if err := json.Unmarshal(body, &response); err != nil {
-		return fmt.Errorf("could not unmarshal: %w", err)
-	}
-
-	for _, name := range response.Results {
-		fmt.Println(name.Name)
+	response, err := PrintMapInfo(cfg.next, cfg)
+	if err != nil {
+		return fmt.Errorf("could not print map: %w", err)
 	}
 
 	cfg.next = response.Next
@@ -114,33 +85,9 @@ func commandMapb(cfg *config) error {
 		return nil
 	}
 
-	var body []byte
-	cacheData, found := cfg.cache.Get(cfg.previous)
-	if found {
-		fmt.Println("Using cached data...")
-		body = cacheData
-	} else {
-		res, err := http.Get(cfg.previous)
-		if err != nil {
-			return fmt.Errorf("error creating request: %w", err)
-		}
-
-		defer res.Body.Close()
-
-		body, err = io.ReadAll(res.Body)
-		if err != nil {
-			return fmt.Errorf("error reading body: %w", err)
-		}
-		cfg.cache.Add(cfg.previous, body)
-	}
-
-	var response LocationAreaNoID
-	if err := json.Unmarshal(body, &response); err != nil {
-		return fmt.Errorf("could not unmarshal: %w", err)
-	}
-
-	for _, name := range response.Results {
-		fmt.Println(name.Name)
+	response, err := PrintMapInfo(cfg.previous, cfg)
+	if err != nil {
+		return fmt.Errorf("could not print map: %w", err)
 	}
 
 	cfg.next = response.Next
